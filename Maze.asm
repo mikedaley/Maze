@@ -127,7 +127,8 @@ _skipBlock2
 ; -----------------------------------------------------------------------------
 mainLoop                                                          
             ; -----------------------------------------------------------------------------
-            ; Read the keyboard and update the players direction vector            
+            ; Read the keyboard and update the players position. This allows the player to slide
+            ; along walls making it easier to make turns
                 ld      de, 0x00
                 ld      c, 0xfe                                     ; Set up the port for the keyboard as this wont change
             
@@ -186,8 +187,8 @@ _sync           halt
 movePlayer
                 ld      hl, (playerAddr)                            ; Get the players location address             
                 add     hl, de                                      ; Calculate the new player position address
-                ld      de, 0x00
-                ld      a, BORDER_COLOUR                            
+                ld      de, 0x0000                                  ; Clear DE for the next movement check
+                ld      a, BORDER_COLOUR                            ; Need to check against the border colour
                 cp      (hl)                                        ; Compare the new location with the border colour...
                 ret     z                                           ; ...and if it is a border block then don't save HL
                 ld      (playerAddr), hl                            ; New position is not a border block so save it
