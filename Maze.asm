@@ -73,7 +73,7 @@ clearLoop
 drawMaze
                 ld      de, MazeDataEnd - 3
 
-                ld      bc, $0216
+                ld      bc, $0216                                   ; B = number of byte columns, 
 _drawRow
                 push    bc
 _drawLeftColumn
@@ -84,17 +84,17 @@ _drawLeftColumn
 
 _drawForwardByte
                 ; Decrease first as we are going backwards
-                dec     hl
+                dec     hl                                          ; Move HL to the last byte of attribute data
 
-                rla
+                rla 
                 jr      nc, _skipBlock1
                 ld      (hl), BORDER_COLOUR
 
 _skipBlock1
-                dec     c
+                dec     c                                         
                 jr      nz, _drawForwardByte
 
-                djnz    _drawLeftColumn
+                djnz    _drawLeftColumn                             ; If there are more bits left to process, loop
 
                 pop     bc
                 push    bc
@@ -128,7 +128,7 @@ _skipBlock2
 mainLoop                                                          
             ; -----------------------------------------------------------------------------
             ; Read the keyboard and update the players direction vector            
-                ld      hl, playerVector                            ; We will use HL in a few places so just load it once here
+                ld      de, 0x00
                 ld      c, 0xfe                                     ; Set up the port for the keyboard as this wont change
             
 _checkRight                                                         ; Move player right
@@ -136,51 +136,34 @@ _checkRight                                                         ; Move playe
                 in      a, (c)          
                 rra         
                 jr      c, _checkLeft                               ; If P was not pressed check O
-                ld      (hl), 0x01                                  ; P pressed so set the player vector to 0x0001
-                inc     hl          
-                ld      (hl), 0x00          
-                dec     hl
+                ld      de,RIGHT_CELL                               ; P pressed so set the player vector to 0x0001
             
 _checkLeft                                                          ; Move player left
                 rra         
-                jr      c, _checkUp         
-                ld      (hl), 0xff                                  ; O pressed so set the player vector to 0xffff
-                inc     hl          
-                ld      (hl), 0xff          
-                dec     hl
-                                                                    ; JR which saves 1 byte
-            
+                jr      c, _moveHoriz         
+                ld      de, LEFT_CELL
+
+_moveHoriz                                                                    
+                call    movePlayer
+
 _checkUp                                                            ; Move player up
                 ld      b, 0xfb                                     ; Read keys QWERT
                 in      a, (c)          
                 rra         
                 jr      c, _checkDown           
-                ld      (hl), 0xe0                                  ; Q pressed so set the player vector to 0xfffe
-                inc     hl          
-                ld      (hl), 0xff          
-                dec     hl
+                ld      de, UP_CELL
 
 _checkDown                                                          ; Move player down
                 inc     b                                           ; INC B from 0xFB to 0xFD to read ASDFG
                 inc     b           
                 in      a, (c)          
                 rra         
-                jr      c, _movePlayer          
-                ld      (hl), 0x20                                  ; A pressed so set the player vectory to 0x0020
-                inc     hl          
-                ld      (hl), 0x00          
+                jr      c, _moveVert          
+                ld      de, DOWN_CELL
 
-            ; -----------------------------------------------------------------------------
-            ; Update the players position based on the current player vector
-_movePlayer
-                ld      hl, (playerAddr)                            ; Get the players location address             
-                ld      de, (playerVector)                          ; Get the players movement vector
-                add     hl, de                                      ; Calculate the new player position address
-                ld      a, BORDER_COLOUR                            
-                cp      (hl)                                        ; Compare the new location with the border colour...
-                jr      z, _drawplayer                              ; ...and if it is a border block then don't save HL
-                ld      (playerAddr), hl                            ; New position is not a border block so save it
-                
+_moveVert
+                call    movePlayer
+
             ; -----------------------------------------------------------------------------
             ; Draw player 
 _drawplayer
@@ -198,10 +181,23 @@ _sync           halt
                 jp      mainLoop                                   ; Loop
 
 ; -----------------------------------------------------------------------------
+; Update the players position based on the current player vector
+; -----------------------------------------------------------------------------
+movePlayer
+                ld      hl, (playerAddr)                            ; Get the players location address             
+                add     hl, de                                      ; Calculate the new player position address
+                ld      de, 0x00
+                ld      a, BORDER_COLOUR                            
+                cp      (hl)                                        ; Compare the new location with the border colour...
+                ret     z                                           ; ...and if it is a border block then don't save HL
+                ld      (playerAddr), hl                            ; New position is not a border block so save it
+                ret 
+
+; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
-playerVector    dw      RIGHT_CELL
+; playerXVector   dw      RIGHT_CELL
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
