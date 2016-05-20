@@ -171,7 +171,7 @@ _drawplayer
                 ld      (hl), PLAYER_COLOUR                         ; and draw the player
           
             ; -----------------------------------------------------------------------------
-            ; Sync screen and slow things down to 25 fps
+            ; Sync screen and slow things down to 12 fps
 _sync           halt                                    
                 halt
                 halt
