@@ -1,9 +1,10 @@
 ; -----------------------------------------------------------------------------
-; Name:     MAZE
-; Author:   Mike Daley
-; Started:  19th May 2016
+; Name:         MAZE
+; Authors:      Mike Daley & Adrian Brown
+; Started:      19th May 2016
 ; Finished: 
 ;
+; PacMan, in 256 bytes, you gotta be kidding me :o)
 ;
 ; This is an entry for the 256 bytes game competition #6 on the Z80 Assembly programming
 ; on the ZX Spectrum Facebook Group https://www.facebook.com/groups/z80asm/
@@ -70,61 +71,55 @@ clearLoop
 ; Draw playing area - NOT OPTIMISED YET
 ; -----------------------------------------------------------------------------
 drawMaze
-                ld      hl, ATTR_SCRN_ADDR + (1 * 32)
-                ld      de, maze
+                ld      de, MazeDataEnd - 3
 
-                ld      c, 0
+                ld      bc, $0216
 _drawRow
                 push    bc
-                ld      c, 2
-
 _drawLeftColumn
+                inc     de
                 ld      a, (de)
-                ld      b, 8
+
+                ld      c, 8
 
 _drawForwardByte
+                ; Decrease first as we are going backwards
+                dec     hl
+
                 rla
                 jr      nc, _skipBlock1
                 ld      (hl), BORDER_COLOUR
 
 _skipBlock1
-                inc     hl
-                djnz    _drawForwardByte
-
-                inc     de
                 dec     c
-                xor     a                                           ; Reset A
-                or      c                                           ; Compare C with 0
-                jr      nz, _drawLeftColumn
+                jr      nz, _drawForwardByte
 
-                dec     de
-                ld      c, 2
+                djnz    _drawLeftColumn
+
+                pop     bc
+                push    bc
 _drawRightColumn
                 ld      a, (de)
-                ld      b, 8
+                dec     de
+                ld      c, 8
 
 _drawBackwardByte
+                dec     hl
+
                 rra
                 jr      nc, _skipBlock2
                 ld      (hl), BORDER_COLOUR
 
 _skipBlock2
-                inc     hl
-                djnz    _drawBackwardByte
+                dec     c
+                jr      nz, _drawBackwardByte
+
+                djnz    _drawRightColumn
 
                 dec     de
-                dec     c
-                xor     a                                           ; Reset A
-                or      c                                           ; Compare C with 0
-                jr      nz, _drawRightColumn
-                
-                inc     de
-                inc     de
-                inc     de
+                dec     de
                 pop     bc
-                inc     c
-                ld      a, 2 * 22
-                cp      c
+                dec     c
                 jr      nz, _drawRow
 
 ; -----------------------------------------------------------------------------
@@ -205,32 +200,32 @@ _sync           halt
 ; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
-playerAddr      dw      ATTR_SCRN_ADDR + (2 * 32) + 1
+playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
 playerVector    dw      RIGHT_CELL
 
-maze            db      %11111111, %11111111 ;, %11111111, %11111110
-                db      %10000000, %00000001 ;, %00000000, %00000010
-                db      %10111101, %11111100 ;, %01111111, %01111010
-                db      %10111101, %11100001 ;, %00001111, %01111010 
-                db      %10111101, %11101111 ;, %11101111, %01111010
-                db      %10000000, %00000001 ;, %00000000, %00000010
-                db      %10111101, %11111101 ;, %01111111, %01111010
-                db      %10111101, %11111101 ;, %01111111, %01111010
-                db      %10000000, %00000000 ;, %00000000, %00000010
-                db      %11111110, %10111111 ;, %11111010, %11111110
-                db      %00000010, %10100000 ;, %00001010, %10000000
-                db      %11111110, %10100000 ;, %00001010, %11111110
-                db      %10000000, %00111111 ;, %11111000, %00000010
-                db      %10111110, %10000001 ;, %00000010, %11111010
-                db      %10111110, %10111101 ;, %01111010, %11111010
-                db      %10000000, %10111101 ;, %01111010, %00000010
-                db      %10110110, %10111101 ;, %01111010, %11011010
-                db      %10110110, %00000000 ;, %00000000, %11011010
-                db      %10110110, %10111111 ;, %11111010, %11011010
-                db      %10110110, %10111111 ;, %11111010, %11011010
-                db      %10000000, %10000000 ;, %00000010, %00000010
-                db      %11111111, %11111111 ;, %11111111, %11111110
-
+MazeData:       db      %11111111, %11111111
+                db      %10000000, %00000001
+                db      %10111101, %11111100
+                db      %10111101, %11100001
+                db      %10111101, %11101111
+                db      %10000000, %00000001
+                db      %10111101, %11111101
+                db      %10111101, %11111101
+                db      %10000000, %00000000
+                db      %11111110, %10111111
+                db      %00000010, %10100000
+                db      %11111110, %10100000
+                db      %10000000, %00111111
+                db      %10111110, %10000001
+                db      %10111110, %10111101
+                db      %10000000, %10111101
+                db      %10110110, %10111101
+                db      %10110110, %00000000
+                db      %10110110, %10111111
+                db      %10110110, %10111111
+                db      %10000000, %10000000
+                db      %11111111, %11111111
+MazeDataEnd:
                 END init
 
 
