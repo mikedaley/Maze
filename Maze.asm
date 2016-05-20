@@ -198,7 +198,6 @@ movePlayer
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
-; playerXVector   dw      RIGHT_CELL
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
