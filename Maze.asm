@@ -182,7 +182,9 @@ _sync           halt
                 jp      mainLoop                                   ; Loop
 
 ; -----------------------------------------------------------------------------
-; Update the players position based on the current player vector
+; Update the players position based on the value in DE. DE holds the value to
+; be added to the players address and then a check is made to see if that is a 
+; wall or not. No wall and the new address is saved, otherwise its ignored
 ; -----------------------------------------------------------------------------
 movePlayer
                 ld      hl, (playerAddr)                            ; Get the players location address             
@@ -202,7 +204,7 @@ playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
                 db      %10111101, %11111100
-                db      %10111101, %11100001
+                db      %10100101, %00100001
                 db      %10111101, %11101111
                 db      %10000000, %00000001
                 db      %10111101, %11111101
@@ -214,7 +216,7 @@ MazeData:       db      %11111111, %11111111
                 db      %10000000, %00111111
                 db      %10111110, %10000001
                 db      %10111110, %10111101
-                db      %10000000, %10111101
+                db      %10000000, %10100101
                 db      %10110110, %10111101
                 db      %10110110, %00000000
                 db      %10110110, %10111111
