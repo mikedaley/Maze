@@ -33,7 +33,8 @@ FLASH                   equ             0x80                        ; e.g. ATTR 
 
 PLAYER_COLOUR           equ             YELLOW * PAPER + BLACK
 SCRN_COLOUR             equ             BLACK * PAPER
-BORDER_COLOUR           equ             BLUE * PAPER + BRIGHT       
+BORDER_COLOUR           equ             BLUE * PAPER + BRIGHT 
+PURPLE_GHOST_COLOUR     equ             MAGENTA * PAPER + BRIGHT      
 
 UP_CELL                 equ             0xffe0                      ; - 32
 DOWN_CELL               equ             0x0020                      ; + 32
@@ -145,7 +146,7 @@ _checkLeft                                                          ; Move playe
                 ld      de, LEFT_CELL
 
 _moveHoriz                                                                    
-                call    movePlayer
+                call    move
 
 _checkUp                                                            ; Move player up
                 ld      b, 0xfb                                     ; Read keys QWERT
@@ -163,7 +164,41 @@ _checkDown                                                          ; Move playe
                 ld      de, DOWN_CELL
 
 _moveVert
-                call    movePlayer
+                call    move
+
+            ; -----------------------------------------------------------------------------
+            ; Move the ghosts
+_moveGhosts                
+                call    genRndmNmbr
+                ld      a, (rndmNmbr1)
+                cp      128
+                jr      c, _ghostLeft
+                ld      de, RIGHT_CELL
+                jp     _moveGhostHoriz
+
+_ghostLeft
+                ld      de, LEFT_CELL
+
+_moveGhostHoriz
+                call    moveGhost
+
+_ghostUp
+                ld      a, (rndmNmbr2)
+                cp      64
+                jr      c, _ghostDown
+                ld      de, UP_CELL
+                jp      _moveGhostVert
+
+_ghostDown
+                ld      de, DOWN_CELL
+
+_moveGhostVert
+                call    moveGhost
+
+            ; -----------------------------------------------------------------------------
+            ; Draw ghosts
+                ld      hl, (purpleGhostAddr)
+                ld      (hl),  PURPLE_GHOST_COLOUR   
 
             ; -----------------------------------------------------------------------------
             ; Draw player 
@@ -176,8 +211,12 @@ _drawplayer
 _sync           halt                                    
                 halt
                 halt
+                halt
 
                 ld      (hl), SCRN_COLOUR                           ; Draw the border colour in the current location 
+
+                ld      hl, (purpleGhostAddr)
+                ld      (hl), SCRN_COLOUR
 
                 jp      mainLoop                                   ; Loop
 
@@ -186,7 +225,7 @@ _sync           halt
 ; be added to the players address and then a check is made to see if that is a 
 ; wall or not. No wall and the new address is saved, otherwise its ignored
 ; -----------------------------------------------------------------------------
-movePlayer
+move
                 ld      hl, (playerAddr)                            ; Get the players location address             
                 add     hl, de                                      ; Calculate the new player position address
                 ld      de, 0x0000                                  ; Clear DE for the next movement check
@@ -196,10 +235,45 @@ movePlayer
                 ld      (playerAddr), hl                            ; New position is not a border block so save it
                 ret 
 
+moveGhost
+                ld      hl, (purpleGhostAddr)                       ; Get the players location address             
+                add     hl, de                                      ; Calculate the new player position address
+                ld      de, 0x0000                                  ; Clear DE for the next movement check
+                ld      a, BORDER_COLOUR                            ; Need to check against the border colour
+                cp      (hl)                                        ; Compare the new location with the border colour...
+                ret     z                                           ; ...and if it is a border block then don't save HL
+                ld      (purpleGhostAddr), hl                       ; New position is not a border block so save it
+                ret 
+
+genRndmNmbr     ld      hl, rndmNmbr1
+                ld      e, (hl)
+                inc     l
+                ld      d, (hl)
+                inc     l
+                ld      a, r
+                xor     (hl)
+                xor     e
+                xor     d
+                rlca
+                rlca
+                rlca
+                srl     e
+                srl     d
+                ld      (hl), d
+                dec     l
+                ld      (hl), e
+                dec     l
+                ld      (hl), a
+                ret
+
+rndmNmbr1       db      0xaa                        ; Holds a random number calculated each frame
+rndmNmbr2       db      0x55                        ; Holds a random number calculated each frame
+rndmNmbr3       db      0xf0                        ; Holds a random number calculated each frame
 ; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
+purpleGhostAddr dw      ATTR_SCRN_ADDR + (10 * 32) + 16
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
