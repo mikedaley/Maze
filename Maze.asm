@@ -55,7 +55,7 @@ init
 ; -----------------------------------------------------------------------------
 ; Initiaise the screen by clearing the bitmap screen and attributes. Everything
 ; is set to 0 which is why the border colour used in the game is black to save
-; some bytes ;o)
+; some bytes ;o) 
 ; -----------------------------------------------------------------------------
 startGame
                 ld      hl, BITMAP_SCRN_ADDR                        ; Point HL at the start of the bitmap file. This approach saves
