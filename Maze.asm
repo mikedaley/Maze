@@ -168,32 +168,7 @@ _moveVert
 
             ; -----------------------------------------------------------------------------
             ; Move the ghosts
-_moveGhosts                
-                call    genRndmNmbr
-                ld      a, (rndmNmbr1)
-                cp      128
-                jr      c, _ghostLeft
-                ld      de, RIGHT_CELL
-                jp     _moveGhostHoriz
 
-_ghostLeft
-                ld      de, LEFT_CELL
-
-_moveGhostHoriz
-                call    moveGhost
-
-_ghostUp
-                ld      a, (rndmNmbr2)
-                cp      64
-                jr      c, _ghostDown
-                ld      de, UP_CELL
-                jp      _moveGhostVert
-
-_ghostDown
-                ld      de, DOWN_CELL
-
-_moveGhostVert
-                call    moveGhost
 
             ; -----------------------------------------------------------------------------
             ; Draw ghosts
@@ -235,40 +210,6 @@ move
                 ld      (playerAddr), hl                            ; New position is not a border block so save it
                 ret 
 
-moveGhost
-                ld      hl, (purpleGhostAddr)                       ; Get the players location address             
-                add     hl, de                                      ; Calculate the new player position address
-                ld      de, 0x0000                                  ; Clear DE for the next movement check
-                ld      a, BORDER_COLOUR                            ; Need to check against the border colour
-                cp      (hl)                                        ; Compare the new location with the border colour...
-                ret     z                                           ; ...and if it is a border block then don't save HL
-                ld      (purpleGhostAddr), hl                       ; New position is not a border block so save it
-                ret 
-
-genRndmNmbr     ld      hl, rndmNmbr1
-                ld      e, (hl)
-                inc     l
-                ld      d, (hl)
-                inc     l
-                ld      a, r
-                xor     (hl)
-                xor     e
-                xor     d
-                rlca
-                rlca
-                rlca
-                srl     e
-                srl     d
-                ld      (hl), d
-                dec     l
-                ld      (hl), e
-                dec     l
-                ld      (hl), a
-                ret
-
-rndmNmbr1       db      0xaa                        ; Holds a random number calculated each frame
-rndmNmbr2       db      0x55                        ; Holds a random number calculated each frame
-rndmNmbr3       db      0xf0                        ; Holds a random number calculated each frame
 ; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
