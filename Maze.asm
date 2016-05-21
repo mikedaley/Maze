@@ -33,8 +33,8 @@ FLASH                   equ             0x80                        ; e.g. ATTR 
 
 PLAYER_COLOUR           equ             YELLOW * PAPER + BLACK
 SCRN_COLOUR             equ             BLACK * PAPER
-BORDER_COLOUR           equ             BLUE * PAPER + BRIGHT 
-PURPLE_GHOST_COLOUR     equ             MAGENTA * PAPER + BRIGHT      
+BORDER_COLOUR           equ             BLUE * PAPER 
+BLINKY_COLOUR           equ             RED * PAPER + BRIGHT      
 
 UP_CELL                 equ             0xffe0                      ; - 32
 DOWN_CELL               equ             0x0020                      ; + 32
@@ -212,7 +212,7 @@ _moveBlinkyHoriz
             ; Draw blinky
 _drawBlinky
                 ld      hl, (blinkyAddr)
-                ld      (hl),  PURPLE_GHOST_COLOUR   
+                ld      (hl),  BLINKY_COLOUR   
 
             ; -----------------------------------------------------------------------------
             ; Draw player 
