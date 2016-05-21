@@ -41,6 +41,9 @@ DOWN_CELL               equ             0x0020                      ; + 32
 LEFT_CELL               equ             0xffff                      ; -1 
 RIGHT_CELL              equ             0x0001                      ; + 1
 
+DYN_VAR_PLAYER_POS      equ             0x00
+DYN_VAR_BLINKY_POS      equ             0x02
+
 ; -----------------------------------------------------------------------------
 ; MAIN CODE
 ; -----------------------------------------------------------------------------
@@ -146,7 +149,9 @@ _checkLeft                                                          ; Move playe
                 ld      de, LEFT_CELL
 
 _moveHoriz                                                                    
-                call    move
+                push    bc
+                call    movePlayer 
+                pop     bc
 
 _checkUp                                                            ; Move player up
                 ld      b, 0xfb                                     ; Read keys QWERT
@@ -164,7 +169,7 @@ _checkDown                                                          ; Move playe
                 ld      de, DOWN_CELL
 
 _moveVert
-                call    move
+                call    movePlayer
 
             ; -----------------------------------------------------------------------------
             ; Move the ghosts
@@ -172,7 +177,7 @@ _moveVert
 
             ; -----------------------------------------------------------------------------
             ; Draw ghosts
-                ld      hl, (purpleGhostAddr)
+                ld      hl, (blinkyAddr)
                 ld      (hl),  PURPLE_GHOST_COLOUR   
 
             ; -----------------------------------------------------------------------------
@@ -188,9 +193,9 @@ _sync           halt
                 halt
                 halt
 
-                ld      (hl), SCRN_COLOUR                           ; Draw the border colour in the current location 
-
-                ld      hl, (purpleGhostAddr)
+                ld      (hl), SCRN_COLOUR                           ; Erase the player
+ 
+                ld      hl, (blinkyAddr)                            ; Erase blinky
                 ld      (hl), SCRN_COLOUR
 
                 jp      mainLoop                                   ; Loop
@@ -200,7 +205,7 @@ _sync           halt
 ; be added to the players address and then a check is made to see if that is a 
 ; wall or not. No wall and the new address is saved, otherwise its ignored
 ; -----------------------------------------------------------------------------
-move
+movePlayer
                 ld      hl, (playerAddr)                            ; Get the players location address             
                 add     hl, de                                      ; Calculate the new player position address
                 ld      de, 0x0000                                  ; Clear DE for the next movement check
@@ -208,13 +213,66 @@ move
                 cp      (hl)                                        ; Compare the new location with the border colour...
                 ret     z                                           ; ...and if it is a border block then don't save HL
                 ld      (playerAddr), hl                            ; New position is not a border block so save it
+                push    de
+                call    getPosition                                 ; Calculate the new cell position of the player
+                ld      a, d                                        
+                ld      (dynamicVariables + DYN_VAR_PLAYER_POS), a  ; Save the Y cell position
+                ld      a, e
+                ld      (dynamicVariables + DYN_VAR_PLAYER_POS + 1), a ; Save the X cell position
+                pop     de
                 ret 
+
+; -----------------------------------------------------------------------------
+; Get the X and Y tile position from the attribute address passed in
+; HL = Attribute address
+; Return DE = Y, X
+; -----------------------------------------------------------------------------
+getPosition
+                ld      de, ATTR_SCRN_ADDR
+
+                or      1                                           ; Address - Attribute start address
+                sbc     hl, de
+                
+                push    hl
+
+                srl     h                                           ; Divide by 32
+                rr      l
+                srl     h 
+                rr      l
+                srl     h 
+                rr      l
+                srl     h 
+                rr      l
+                srl     h 
+                rr      l
+
+                ld      d, l                                        ; Save the Y tile position
+
+                add     hl, hl                                      ; Multuply result by 32
+                add     hl, hl
+                add     hl, hl
+                add     hl, hl
+                add     hl, hl
+
+                push    hl
+                pop     bc
+                pop     hl
+
+                or      1
+                sbc     hl, bc                                     ; Calculate the X position
+
+                ld      e, l                                       ; Save the X tile position 
+
+                ret
 
 ; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
-purpleGhostAddr dw      ATTR_SCRN_ADDR + (10 * 32) + 16
+; playerPos       dw      0x0000
+
+blinkyAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
+; blinkyPos       dw      0x0000
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
@@ -239,6 +297,11 @@ MazeData:       db      %11111111, %11111111
                 db      %10000000, %10000000
                 db      %11111111, %11111111
 MazeDataEnd:
+
+dynamicVariables
+                ; playerPos dw
+                ; blinkyPos dw
+
                 END init
 
 
