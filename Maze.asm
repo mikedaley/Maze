@@ -42,7 +42,7 @@ LEFT_CELL               equ             0xffff                      ; -1
 RIGHT_CELL              equ             0x0001                      ; + 1
 
 DYN_VAR_PLAYER_POS      equ             0x00
-DYN_VAR_BLINKY_POS      equ             0x02
+DYN_VAR_SHADOW_POS      equ             0x02
 
 ; -----------------------------------------------------------------------------
 ; MAIN CODE
@@ -126,6 +126,14 @@ _skipBlock2
                 dec     c
                 jr      nz, _drawRow
 
+
+; -----------------------------------------------------------------------------
+; Mark junctions
+; -----------------------------------------------------------------------------
+markJunctions
+                ld      hl, ATTR_SCRN_ADDR
+
+
 ; -----------------------------------------------------------------------------
 ; Main game loop
 ; -----------------------------------------------------------------------------
@@ -172,38 +180,38 @@ _moveVert
                 call    movePlayer
 
             ; -----------------------------------------------------------------------------
-            ; Move blinky
-                ld      ix, dynamicVariables + DYN_VAR_PLAYER_POS
-                ld      iy, dynamicVariables + DYN_VAR_BLINKY_POS
+            ; Move shadow
+                ld      ix, dynVariables + DYN_VAR_PLAYER_POS
+                ld      iy, dynVariables + DYN_VAR_SHADOW_POS
 
                 ld      a, (ix + 0)
                 sub     (iy + 0)
-                jp      m, _moveBlinkyUp
+                jp      m, _moveShadowUp
                 ld      de, DOWN_CELL
-                jr      _moveBlinkyVert
+                jr      _moveShadowVert
 
-_moveBlinkyUp    
+_moveShadowUp    
                 ld      de, UP_CELL  
 
-_moveBlinkyVert
-                call    moveBlinky
+_moveShadowVert
+                call    moveShadow
 
                 ld      a, (ix + 1)
                 sub     (iy + 1)
-                jp      m, _moveBlinkyLeft
+                jp      m, _moveShadowLeft
                 ld      de, RIGHT_CELL
-                jr      _moveBlinkyHoriz
+                jr      _moveShadowHoriz
 
-_moveBlinkyLeft    
+_moveShadowLeft    
                 ld      de, LEFT_CELL  
 
-_moveBlinkyHoriz
-                call    moveBlinky
+_moveShadowHoriz
+                call    moveShadow
 
             ; -----------------------------------------------------------------------------
-            ; Draw blinky
-_drawBlinky
-                ld      hl, (blinkyAddr)
+            ; Draw shadow
+_drawShadow
+                ld      hl, (shadowAddr)
                 ld      (hl),  PURPLE_GHOST_COLOUR   
 
             ; -----------------------------------------------------------------------------
@@ -221,7 +229,7 @@ _sync           halt
 
                 ld      (hl), SCRN_COLOUR                           ; Erase the player
  
-                ld      hl, (blinkyAddr)                            ; Erase blinky
+                ld      hl, (shadowAddr)                            ; Erase shadow
                 ld      (hl), SCRN_COLOUR
 
                 jp      mainLoop                                   ; Loop
@@ -243,27 +251,27 @@ movePlayer
                 push    de
                 call    getPosition                                 ; Calculate the new cell position of the player
                 ld      a, d                                        
-                ld      (dynamicVariables + DYN_VAR_PLAYER_POS), a  ; Save the Y cell position
+                ld      (dynVariables + DYN_VAR_PLAYER_POS), a      ; Save the Y cell position
                 ld      a, e
-                ld      (dynamicVariables + DYN_VAR_PLAYER_POS + 1), a ; Save the X cell position
+                ld      (dynVariables + DYN_VAR_PLAYER_POS + 1), a  ; Save the X cell position
                 pop     de
                 ret 
 
 ; -----------------------------------------------------------------------------
-; Move blinky
+; Move shadow
 ; -----------------------------------------------------------------------------
-moveBlinky
-                ld      hl, (blinkyAddr)
+moveShadow
+                ld      hl, (shadowAddr)
                 add     hl, de
                 ld      a, BORDER_COLOUR
                 cp      (hl)
                 ret     z
-                ld      (blinkyAddr), hl
+                ld      (shadowAddr), hl
                 call    getPosition                                 ; Calculate the new cell position of the player
                 ld      a, d                                        
-                ld      (dynamicVariables + DYN_VAR_BLINKY_POS), a  ; Save the Y cell position
+                ld      (dynVariables + DYN_VAR_SHADOW_POS), a      ; Save the Y cell position
                 ld      a, e
-                ld      (dynamicVariables + DYN_VAR_BLINKY_POS + 1), a ; Save the X cell position
+                ld      (dynVariables + DYN_VAR_SHADOW_POS + 1), a  ; Save the X cell position
                 ret
 
 ; -----------------------------------------------------------------------------
@@ -316,25 +324,25 @@ getPosition
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
-blinkyAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
-blinkyVector    dw      LEFT_CELL
+shadowAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
+; shadowVector    dw      LEFT_CELL
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
                 db      %10111101, %11111100
-                db      %10100101, %00100001
+                db      %10111101, %11100001
                 db      %10111101, %11101111
                 db      %10000000, %00000001
                 db      %10111101, %11111101
                 db      %10111101, %11111101
                 db      %10000000, %00000000
                 db      %11111110, %10111111
-                db      %00000010, %10100000
-                db      %11111110, %10100000
+                db      %11111110, %10000000
+                db      %11111110, %10111111
                 db      %10000000, %00111111
                 db      %10111110, %10000001
                 db      %10111110, %10111101
-                db      %10000000, %10100101
+                db      %10000000, %10111101
                 db      %10110110, %10111101
                 db      %10110110, %00000000
                 db      %10110110, %10111111
@@ -343,9 +351,9 @@ MazeData:       db      %11111111, %11111111
                 db      %11111111, %11111111
 MazeDataEnd:
 
-dynamicVariables
+dynVariables
                 ; playerPos dw
-                ; blinkyPos dw
+                ; shadowPos dw
 
                 END init
 
