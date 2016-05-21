@@ -136,14 +136,14 @@ mainLoop
                 ld      de, 0x00
                 ld      c, 0xfe                                     ; Set up the port for the keyboard as this wont change
             
-_checkRight                                                         ; Move player right
+_checkRightKey                                                      ; Move player right
                 ld      b, 0xdf                                     ; Read keys YUIOP by setting B only as C is already set
                 in      a, (c)          
                 rra         
-                jr      c, _checkLeft                               ; If P was not pressed check O
+                jr      c, _checkLeftKey                            ; If P was not pressed check O
                 ld      de,RIGHT_CELL                               ; P pressed so set the player vector to 0x0001
             
-_checkLeft                                                          ; Move player left
+_checkLeftKey                                                       ; Move player left
                 rra         
                 jr      c, _moveHoriz         
                 ld      de, LEFT_CELL
@@ -153,14 +153,14 @@ _moveHoriz
                 call    movePlayer 
                 pop     bc
 
-_checkUp                                                            ; Move player up
+_checkUpKey                                                         ; Move player up
                 ld      b, 0xfb                                     ; Read keys QWERT
                 in      a, (c)          
                 rra         
-                jr      c, _checkDown           
+                jr      c, _checkDownKey           
                 ld      de, UP_CELL
 
-_checkDown                                                          ; Move player down
+_checkDownKey                                                       ; Move player down
                 inc     b                                           ; INC B from 0xFB to 0xFD to read ASDFG
                 inc     b           
                 in      a, (c)          
@@ -172,11 +172,37 @@ _moveVert
                 call    movePlayer
 
             ; -----------------------------------------------------------------------------
-            ; Move the ghosts
+            ; Move blinky
+                ld      ix, dynamicVariables + DYN_VAR_PLAYER_POS
+                ld      iy, dynamicVariables + DYN_VAR_BLINKY_POS
 
+                ld      a, (ix + 0)
+                sub     (iy + 0)
+                jp      m, _moveBlinkyUp
+                ld      de, DOWN_CELL
+                jr      _moveBlinkyVert
+
+_moveBlinkyUp    
+                ld      de, UP_CELL  
+
+_moveBlinkyVert
+                call    moveBlinky
+
+                ld      a, (ix + 1)
+                sub     (iy + 1)
+                jp      m, _moveBlinkyLeft
+                ld      de, RIGHT_CELL
+                jr      _moveBlinkyHoriz
+
+_moveBlinkyLeft    
+                ld      de, LEFT_CELL  
+
+_moveBlinkyHoriz
+                call    moveBlinky
 
             ; -----------------------------------------------------------------------------
-            ; Draw ghosts
+            ; Draw blinky
+_drawBlinky
                 ld      hl, (blinkyAddr)
                 ld      (hl),  PURPLE_GHOST_COLOUR   
 
@@ -213,6 +239,7 @@ movePlayer
                 cp      (hl)                                        ; Compare the new location with the border colour...
                 ret     z                                           ; ...and if it is a border block then don't save HL
                 ld      (playerAddr), hl                            ; New position is not a border block so save it
+                
                 push    de
                 call    getPosition                                 ; Calculate the new cell position of the player
                 ld      a, d                                        
@@ -223,9 +250,29 @@ movePlayer
                 ret 
 
 ; -----------------------------------------------------------------------------
-; Get the X and Y tile position from the attribute address passed in
-; HL = Attribute address
-; Return DE = Y, X
+; Move blinky
+; -----------------------------------------------------------------------------
+moveBlinky
+                ld      hl, (blinkyAddr)
+                add     hl, de
+                ld      a, BORDER_COLOUR
+                cp      (hl)
+                ret     z
+                ld      (blinkyAddr), hl
+                call    getPosition                                 ; Calculate the new cell position of the player
+                ld      a, d                                        
+                ld      (dynamicVariables + DYN_VAR_BLINKY_POS), a  ; Save the Y cell position
+                ld      a, e
+                ld      (dynamicVariables + DYN_VAR_BLINKY_POS + 1), a ; Save the X cell position
+                ret
+
+; -----------------------------------------------------------------------------
+; Get the X and Y cell position from the attribute address passed in
+; Entry:
+;   HL = Attribute address
+; Exit:
+;   D = Y cell position 
+;   E = X cell position
 ; -----------------------------------------------------------------------------
 getPosition
                 ld      de, ATTR_SCRN_ADDR
@@ -233,7 +280,7 @@ getPosition
                 or      1                                           ; Address - Attribute start address
                 sbc     hl, de
                 
-                push    hl
+                push    hl                                          ; Save # bytes from starts of attribute address
 
                 srl     h                                           ; Divide by 32
                 rr      l
@@ -269,10 +316,8 @@ getPosition
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
-; playerPos       dw      0x0000
-
 blinkyAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
-; blinkyPos       dw      0x0000
+blinkyVector    dw      LEFT_CELL
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
