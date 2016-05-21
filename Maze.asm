@@ -51,7 +51,7 @@ DYN_VAR_SHADOW_POS      equ             0x02
                 org     0x8000
 
 ; -----------------------------------------------------------------------------
-; Initialiase the level complete and trapped variables
+; Initialise
 ; -----------------------------------------------------------------------------
 init
 
@@ -180,38 +180,38 @@ _moveVert
                 call    movePlayer
 
             ; -----------------------------------------------------------------------------
-            ; Move shadow
+            ; Move blinky
                 ld      ix, dynVariables + DYN_VAR_PLAYER_POS
                 ld      iy, dynVariables + DYN_VAR_SHADOW_POS
 
                 ld      a, (ix + 0)
                 sub     (iy + 0)
-                jp      m, _moveShadowUp
+                jp      m, _moveBlinkyUp
                 ld      de, DOWN_CELL
-                jr      _moveShadowVert
+                jr      _moveBlinkyVert
 
-_moveShadowUp    
+_moveBlinkyUp    
                 ld      de, UP_CELL  
 
-_moveShadowVert
-                call    moveShadow
+_moveBlinkyVert
+                call    moveBlinky
 
                 ld      a, (ix + 1)
                 sub     (iy + 1)
-                jp      m, _moveShadowLeft
+                jp      m, _moveBlinkyLeft
                 ld      de, RIGHT_CELL
-                jr      _moveShadowHoriz
+                jr      _moveBlinkyHoriz
 
-_moveShadowLeft    
+_moveBlinkyLeft    
                 ld      de, LEFT_CELL  
 
-_moveShadowHoriz
-                call    moveShadow
+_moveBlinkyHoriz
+                call    moveBlinky
 
             ; -----------------------------------------------------------------------------
-            ; Draw shadow
-_drawShadow
-                ld      hl, (shadowAddr)
+            ; Draw blinky
+_drawBlinky
+                ld      hl, (blinkyAddr)
                 ld      (hl),  PURPLE_GHOST_COLOUR   
 
             ; -----------------------------------------------------------------------------
@@ -229,7 +229,7 @@ _sync           halt
 
                 ld      (hl), SCRN_COLOUR                           ; Erase the player
  
-                ld      hl, (shadowAddr)                            ; Erase shadow
+                ld      hl, (blinkyAddr)                            ; Erase blinky
                 ld      (hl), SCRN_COLOUR
 
                 jp      mainLoop                                   ; Loop
@@ -258,15 +258,15 @@ movePlayer
                 ret 
 
 ; -----------------------------------------------------------------------------
-; Move shadow
+; Move blinky
 ; -----------------------------------------------------------------------------
-moveShadow
-                ld      hl, (shadowAddr)
+moveBlinky
+                ld      hl, (blinkyAddr)
                 add     hl, de
                 ld      a, BORDER_COLOUR
                 cp      (hl)
                 ret     z
-                ld      (shadowAddr), hl
+                ld      (blinkyAddr), hl
                 call    getPosition                                 ; Calculate the new cell position of the player
                 ld      a, d                                        
                 ld      (dynVariables + DYN_VAR_SHADOW_POS), a      ; Save the Y cell position
@@ -288,7 +288,7 @@ getPosition
                 or      1                                           ; Address - Attribute start address
                 sbc     hl, de
                 
-                push    hl                                          ; Save # bytes from starts of attribute address
+                push    hl                                          ; Save # bytes from start of attribute address
 
                 srl     h                                           ; Divide by 32
                 rr      l
@@ -324,8 +324,8 @@ getPosition
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
-shadowAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
-; shadowVector    dw      LEFT_CELL
+blinkyAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
+; blinkyVector    dw      LEFT_CELL
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
@@ -353,7 +353,7 @@ MazeDataEnd:
 
 dynVariables
                 ; playerPos dw
-                ; shadowPos dw
+                ; blinkyPos dw
 
                 END init
 
