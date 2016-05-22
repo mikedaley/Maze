@@ -13,36 +13,39 @@
 ; -----------------------------------------------------------------------------
 ; CONSTANTS
 ; -----------------------------------------------------------------------------
-BITMAP_SCRN_ADDR        equ             0x4000
-BITMAP_SCRN_SIZE        equ             0x1800
-ATTR_SCRN_ADDR          equ             0x5800
-ATTR_SCRN_SIZE          equ             0x300
-ATTR_ROW_SIZE           equ             0x1f
+BITMAP_SCRN_ADDR            equ             0x4000
+BITMAP_SCRN_SIZE            equ             0x1800
+ATTR_SCRN_ADDR              equ             0x5800
+ATTR_SCRN_SIZE              equ             0x300
+ATTR_ROW_SIZE               equ             0x1f
+    
+BLACK                       equ             0x00
+BLUE                        equ             0x01
+RED                         equ             0x02
+MAGENTA                     equ             0x03
+GREEN                       equ             0x04
+CYAN                        equ             0x05
+YELLOW                      equ             0x06
+WHITE                       equ             0x07
+PAPER                       equ             0x08                        ; Multiply with inks to get paper colour
+BRIGHT                      equ             0x40
+FLASH                       equ             0x80                        ; e.g. ATTR = BLACK * PAPER + CYAN + BRIGHT
+    
+PLAYER_COLOUR               equ             YELLOW * PAPER + BLACK
+TRACK_COLOUR                equ             BLACK * PAPER
+BORDER_COLOUR               equ             BLUE * PAPER 
+BLINKY_COLOUR               equ             RED * PAPER + BRIGHT      
+JUNCTION_COLOUR             equ             MAGENTA * PAPER + BRIGHT
+    
+UP_CELL                     equ             0xffe0                      ; - 32
+DOWN_CELL                   equ             0x0020                      ; + 32
+LEFT_CELL                   equ             0xffff                      ; -1 
+RIGHT_CELL                  equ             0x0001                      ; + 1
 
-BLACK                   equ             0x00
-BLUE                    equ             0x01
-RED                     equ             0x02
-MAGENTA                 equ             0x03
-GREEN                   equ             0x04
-CYAN                    equ             0x05
-YELLOW                  equ             0x06
-WHITE                   equ             0x07
-PAPER                   equ             0x08                        ; Multiply with inks to get paper colour
-BRIGHT                  equ             0x40
-FLASH                   equ             0x80                        ; e.g. ATTR = BLACK * PAPER + CYAN + BRIGHT
+MIN_EXITS_TO_MAKE_JUNCTION  equ             0x03
 
-PLAYER_COLOUR           equ             YELLOW * PAPER + BLACK
-SCRN_COLOUR             equ             BLACK * PAPER
-BORDER_COLOUR           equ             BLUE * PAPER 
-BLINKY_COLOUR           equ             RED * PAPER + BRIGHT      
-
-UP_CELL                 equ             0xffe0                      ; - 32
-DOWN_CELL               equ             0x0020                      ; + 32
-LEFT_CELL               equ             0xffff                      ; -1 
-RIGHT_CELL              equ             0x0001                      ; + 1
-
-DYN_VAR_PLAYER_POS      equ             0x00
-DYN_VAR_SHADOW_POS      equ             0x02
+DYN_VAR_PLAYER_POS          equ             0x00
+DYN_VAR_SHADOW_POS          equ             0x02
 
 ; -----------------------------------------------------------------------------
 ; MAIN CODE
@@ -65,7 +68,7 @@ startGame
                 ld      hl, BITMAP_SCRN_ADDR                        ; Point HL at the start of the bitmap file. This approach saves
                                                                     ; 1 byte over using LDIR
 clearLoop 
-                ld      (hl), SCRN_COLOUR                           ; Reset contents of addr in HL to 0
+                ld      (hl), TRACK_COLOUR                           ; Reset contents of addr in HL to 0
                 inc     hl                                          ; Move to the next address
                 ld      a, 0x5b                                     ; Have we reached 0x5b00
                 cp      h                                           
@@ -125,14 +128,6 @@ _skipBlock2
                 pop     bc
                 dec     c
                 jr      nz, _drawRow
-
-
-; -----------------------------------------------------------------------------
-; Mark junctions
-; -----------------------------------------------------------------------------
-markJunctions
-                ld      hl, ATTR_SCRN_ADDR
-
 
 ; -----------------------------------------------------------------------------
 ; Main game loop
@@ -227,10 +222,10 @@ _sync           halt
                 halt
                 halt
 
-                ld      (hl), SCRN_COLOUR                           ; Erase the player
+                ld      (hl), TRACK_COLOUR                           ; Erase the player
  
                 ld      hl, (blinkyAddr)                            ; Erase blinky
-                ld      (hl), SCRN_COLOUR
+                ld      (hl), TRACK_COLOUR
 
                 jp      mainLoop                                   ; Loop
 
@@ -318,6 +313,50 @@ getPosition
 
                 ld      e, l                                       ; Save the X tile position 
 
+                ret
+
+; -----------------------------------------------------------------------------
+; Checks to see if the current tile is a junction. A junction is identified by
+; their being at least three exits
+; Entry:
+;   HL = Attribute address
+; Exit:
+;   CFLAG = set if an junction
+; -----------------------------------------------------------------------------
+isAJunction
+                ld      de, UP_CELL                                 ; Check for an exit up
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkRightExit
+                inc     c
+
+_checkRightExit
+                ld      de, DOWN_CELL + RIGHT_CELL                  ; Check for an exit right
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkDownExit
+                inc     c
+
+_checkDownExit
+                ld      de, DOWN_CELL + LEFT_CELL                   ; Check for an exit down
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkLeftExit
+                inc     c
+
+_checkLeftExit
+                ld      de, UP_CELL + LEFT_CELL                     ; Check for an exit left
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkExitCount
+                inc     c
+
+_checkExitCount
+                or      1                                           ; Check the exit count
+                ld      a, c
+                cp      MIN_EXITS_TO_MAKE_JUNCTION
+                ret     c
+                scf                                                 ; Set the carry flag if count > 3
                 ret
 
 ; -----------------------------------------------------------------------------
