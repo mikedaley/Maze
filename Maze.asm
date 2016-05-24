@@ -334,7 +334,7 @@ getPosition
 ; exits
 ;   HL = Attribute address
 ; Exit:
-;   A = 0 = No junction, 1 = Junction, 2 = Corner
+;   D = 0 = No junction, 1 =Junction
 ; -----------------------------------------------------------------------------
 isAJunction
                 ld      bc, 0
@@ -371,14 +371,14 @@ _checkExitCount
                 ld      a, b
                 add     a, c
                 cp      3
-                jr      c, _notAJunction
+                jr      c, _possibleCorner
                 ld      d, 1
                 ret
 
-_notAJunction
-                ld      d, 0
-                cp      2
-                ret     c
+_possibleCorner
+                ld      d, 0                                        ; If there are two exists that is fine as...
+                cp      2                                           ; ...long as they are different axis, hence...
+                ret     c                                           ; ...counting the exist on each axis seperately i.e. B, C
                 ld      a, b
                 cp      1
                 ret     nz
