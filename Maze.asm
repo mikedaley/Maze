@@ -56,7 +56,8 @@ DYN_VAR_BLINKY_Y_VEC    equ             0x06
 ; Initialiase the level complete and trapped variables
 ; -----------------------------------------------------------------------------
 init
-
+                ld      de, RIGHT_CELL
+                ld      (dynamicVariables + DYN_VAR_BLINKY_X_VEC), de
 
 ; -----------------------------------------------------------------------------
 ; Initiaise the screen by clearing the bitmap screen and attributes. Everything
@@ -180,9 +181,10 @@ _moveVert
                 ld      de, (dynamicVariables + DYN_VAR_BLINKY_X_VEC)
                 call    moveBlinky
 
-                ld      hl, (dynamicVariables + DYN_VAR_BLINKY_POS)
+                ld      hl, (blinkyAddr)
                 call    isAJunction
-                cp      1
+                ld      a, 1
+                cp      d
                 jr      nz, _drawBlinky
 
             ; -----------------------------------------------------------------------------
@@ -335,11 +337,14 @@ getPosition
 ;   A = 0 = No junction, 1 = Junction, 2 = Corner
 ; -----------------------------------------------------------------------------
 isAJunction
+                ld      bc, 0
+                ld      a, BORDER_COLOUR
+
                 ld      de, UP_CELL
                 add     hl, de
                 cp      (hl)
                 jr      z, _checkRightExit
-                inc     c
+                inc     b
 
 _checkRightExit
                 ld      de, DOWN_CELL + RIGHT_CELL
@@ -353,7 +358,7 @@ _checkDownExit
                 add     hl, de
                 cp      (hl)
                 jr      z, _checkLeftExit
-                inc     c
+                inc     b
 
 _checkLeftExit
                 ld      de, UP_CELL + LEFT_CELL
@@ -363,14 +368,23 @@ _checkLeftExit
                 inc     c
 
 _checkExitCount
-                ld      a, c
+                ld      a, b
+                add     a, c
                 cp      3
                 jr      c, _notAJunction
-                ld      a, 1
+                ld      d, 1
                 ret
 
 _notAJunction
-                ld      a, 0
+                ld      d, 0
+                cp      2
+                ret     c
+                ld      a, b
+                cp      1
+                ret     nz
+                ld      a, c
+                ret     nz
+                ld      d, 1
                 ret
 
 ; -----------------------------------------------------------------------------
@@ -382,19 +396,19 @@ blinkyAddr      dw      ATTR_SCRN_ADDR + (22 * 32) + 16
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
                 db      %10111101, %11111100
-                db      %10100101, %00100001
+                db      %10111101, %11100001
                 db      %10111101, %11101111
                 db      %10000000, %00000001
                 db      %10111101, %11111101
                 db      %10111101, %11111101
                 db      %10000000, %00000000
                 db      %11111110, %10111111
-                db      %00000010, %10100000
-                db      %11111110, %10100000
+                db      %11111110, %10111111
+                db      %11111110, %10111111
                 db      %10000000, %00111111
                 db      %10111110, %10000001
                 db      %10111110, %10111101
-                db      %10000000, %10100101
+                db      %10000000, %10111101
                 db      %10110110, %10111101
                 db      %10110110, %00000000
                 db      %10110110, %10111111
