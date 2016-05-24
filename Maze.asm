@@ -47,7 +47,7 @@ RIGHT_CELL              equ             0x0001                      ; + 1
                 org     0x8000
 
 ; -----------------------------------------------------------------------------
-; Initialiase the level complete and trapped variables
+; Initialiase
 ; -----------------------------------------------------------------------------
 init
 
@@ -61,7 +61,7 @@ startGame
                 ld      hl, BITMAP_SCRN_ADDR                        ; Point HL at the start of the bitmap file. This approach saves
                                                                     ; 1 byte over using LDIR
 clearLoop 
-                ld      (hl), SCRN_COLOUR                           ; Reset contents of addr in HL to 0
+                ld      (hl), SCRN_COLOUR                           ; Load the default screen colour into memory
                 inc     hl                                          ; Move to the next address
                 ld      a, 0x5b                                     ; Have we reached 0x5b00
                 cp      h                                           
