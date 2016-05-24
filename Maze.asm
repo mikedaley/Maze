@@ -13,39 +13,36 @@
 ; -----------------------------------------------------------------------------
 ; CONSTANTS
 ; -----------------------------------------------------------------------------
-BITMAP_SCRN_ADDR            equ             0x4000
-BITMAP_SCRN_SIZE            equ             0x1800
-ATTR_SCRN_ADDR              equ             0x5800
-ATTR_SCRN_SIZE              equ             0x300
-ATTR_ROW_SIZE               equ             0x1f
-    
-BLACK                       equ             0x00
-BLUE                        equ             0x01
-RED                         equ             0x02
-MAGENTA                     equ             0x03
-GREEN                       equ             0x04
-CYAN                        equ             0x05
-YELLOW                      equ             0x06
-WHITE                       equ             0x07
-PAPER                       equ             0x08                        ; Multiply with inks to get paper colour
-BRIGHT                      equ             0x40
-FLASH                       equ             0x80                        ; e.g. ATTR = BLACK * PAPER + CYAN + BRIGHT
-    
-PLAYER_COLOUR               equ             YELLOW * PAPER + BLACK
-TRACK_COLOUR                equ             BLACK * PAPER
-BORDER_COLOUR               equ             BLUE * PAPER 
-BLINKY_COLOUR               equ             RED * PAPER + BRIGHT      
-JUNCTION_COLOUR             equ             MAGENTA * PAPER + BRIGHT
-    
-UP_CELL                     equ             0xffe0                      ; - 32
-DOWN_CELL                   equ             0x0020                      ; + 32
-LEFT_CELL                   equ             0xffff                      ; -1 
-RIGHT_CELL                  equ             0x0001                      ; + 1
+BITMAP_SCRN_ADDR        equ             0x4000
+BITMAP_SCRN_SIZE        equ             0x1800
+ATTR_SCRN_ADDR          equ             0x5800
+ATTR_SCRN_SIZE          equ             0x300
+ATTR_ROW_SIZE           equ             0x1f
 
-MIN_EXITS_TO_MAKE_JUNCTION  equ             0x03
+BLACK                   equ             0x00
+BLUE                    equ             0x01
+RED                     equ             0x02
+MAGENTA                 equ             0x03
+GREEN                   equ             0x04
+CYAN                    equ             0x05
+YELLOW                  equ             0x06
+WHITE                   equ             0x07
+PAPER                   equ             0x08                        ; Multiply with inks to get paper colour
+BRIGHT                  equ             0x40
+FLASH                   equ             0x80                        ; e.g. ATTR = BLACK * PAPER + CYAN + BRIGHT
 
-DYN_VAR_PLAYER_POS          equ             0x00
-DYN_VAR_SHADOW_POS          equ             0x02
+PLAYER_COLOUR           equ             YELLOW * PAPER + BLACK
+SCRN_COLOUR             equ             BLACK * PAPER
+BORDER_COLOUR           equ             BLUE * PAPER + BRIGHT 
+PURPLE_GHOST_COLOUR     equ             MAGENTA * PAPER + BRIGHT      
+
+UP_CELL                 equ             0xffe0                      ; - 32
+DOWN_CELL               equ             0x0020                      ; + 32
+LEFT_CELL               equ             0xffff                      ; -1 
+RIGHT_CELL              equ             0x0001                      ; + 1
+
+DYN_VAR_PLAYER_POS      equ             0x00
+DYN_VAR_BLINKY_POS      equ             0x02
 
 ; -----------------------------------------------------------------------------
 ; MAIN CODE
@@ -54,7 +51,7 @@ DYN_VAR_SHADOW_POS          equ             0x02
                 org     0x8000
 
 ; -----------------------------------------------------------------------------
-; Initialise
+; Initialiase the level complete and trapped variables
 ; -----------------------------------------------------------------------------
 init
 
@@ -68,7 +65,7 @@ startGame
                 ld      hl, BITMAP_SCRN_ADDR                        ; Point HL at the start of the bitmap file. This approach saves
                                                                     ; 1 byte over using LDIR
 clearLoop 
-                ld      (hl), TRACK_COLOUR                           ; Reset contents of addr in HL to 0
+                ld      (hl), SCRN_COLOUR                           ; Reset contents of addr in HL to 0
                 inc     hl                                          ; Move to the next address
                 ld      a, 0x5b                                     ; Have we reached 0x5b00
                 cp      h                                           
@@ -176,8 +173,8 @@ _moveVert
 
             ; -----------------------------------------------------------------------------
             ; Move blinky
-                ld      ix, dynVariables + DYN_VAR_PLAYER_POS
-                ld      iy, dynVariables + DYN_VAR_SHADOW_POS
+                ld      ix, dynamicVariables + DYN_VAR_PLAYER_POS
+                ld      iy, dynamicVariables + DYN_VAR_BLINKY_POS
 
                 ld      a, (ix + 0)
                 sub     (iy + 0)
@@ -207,7 +204,7 @@ _moveBlinkyHoriz
             ; Draw blinky
 _drawBlinky
                 ld      hl, (blinkyAddr)
-                ld      (hl),  BLINKY_COLOUR   
+                ld      (hl),  PURPLE_GHOST_COLOUR   
 
             ; -----------------------------------------------------------------------------
             ; Draw player 
@@ -222,10 +219,10 @@ _sync           halt
                 halt
                 halt
 
-                ld      (hl), TRACK_COLOUR                           ; Erase the player
+                ld      (hl), SCRN_COLOUR                           ; Erase the player
  
                 ld      hl, (blinkyAddr)                            ; Erase blinky
-                ld      (hl), TRACK_COLOUR
+                ld      (hl), SCRN_COLOUR
 
                 jp      mainLoop                                   ; Loop
 
@@ -246,9 +243,9 @@ movePlayer
                 push    de
                 call    getPosition                                 ; Calculate the new cell position of the player
                 ld      a, d                                        
-                ld      (dynVariables + DYN_VAR_PLAYER_POS), a      ; Save the Y cell position
+                ld      (dynamicVariables + DYN_VAR_PLAYER_POS), a  ; Save the Y cell position
                 ld      a, e
-                ld      (dynVariables + DYN_VAR_PLAYER_POS + 1), a  ; Save the X cell position
+                ld      (dynamicVariables + DYN_VAR_PLAYER_POS + 1), a ; Save the X cell position
                 pop     de
                 ret 
 
@@ -264,9 +261,9 @@ moveBlinky
                 ld      (blinkyAddr), hl
                 call    getPosition                                 ; Calculate the new cell position of the player
                 ld      a, d                                        
-                ld      (dynVariables + DYN_VAR_SHADOW_POS), a      ; Save the Y cell position
+                ld      (dynamicVariables + DYN_VAR_BLINKY_POS), a  ; Save the Y cell position
                 ld      a, e
-                ld      (dynVariables + DYN_VAR_SHADOW_POS + 1), a  ; Save the X cell position
+                ld      (dynamicVariables + DYN_VAR_BLINKY_POS + 1), a ; Save the X cell position
                 ret
 
 ; -----------------------------------------------------------------------------
@@ -283,7 +280,7 @@ getPosition
                 or      1                                           ; Address - Attribute start address
                 sbc     hl, de
                 
-                push    hl                                          ; Save # bytes from start of attribute address
+                push    hl                                          ; Save # bytes from starts of attribute address
 
                 srl     h                                           ; Divide by 32
                 rr      l
@@ -316,72 +313,28 @@ getPosition
                 ret
 
 ; -----------------------------------------------------------------------------
-; Checks to see if the current tile is a junction. A junction is identified by
-; their being at least three exits
-; Entry:
-;   HL = Attribute address
-; Exit:
-;   CFLAG = set if an junction
-; -----------------------------------------------------------------------------
-isAJunction
-                ld      de, UP_CELL                                 ; Check for an exit up
-                add     hl, de
-                cp      (hl)
-                jr      z, _checkRightExit
-                inc     c
-
-_checkRightExit
-                ld      de, DOWN_CELL + RIGHT_CELL                  ; Check for an exit right
-                add     hl, de
-                cp      (hl)
-                jr      z, _checkDownExit
-                inc     c
-
-_checkDownExit
-                ld      de, DOWN_CELL + LEFT_CELL                   ; Check for an exit down
-                add     hl, de
-                cp      (hl)
-                jr      z, _checkLeftExit
-                inc     c
-
-_checkLeftExit
-                ld      de, UP_CELL + LEFT_CELL                     ; Check for an exit left
-                add     hl, de
-                cp      (hl)
-                jr      z, _checkExitCount
-                inc     c
-
-_checkExitCount
-                or      1                                           ; Check the exit count
-                ld      a, c
-                cp      MIN_EXITS_TO_MAKE_JUNCTION
-                ret     c
-                scf                                                 ; Set the carry flag if count > 3
-                ret
-
-; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
 playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
 blinkyAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
-; blinkyVector    dw      LEFT_CELL
+blinkyVector    dw      LEFT_CELL
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
                 db      %10111101, %11111100
-                db      %10111101, %11100001
+                db      %10100101, %00100001
                 db      %10111101, %11101111
                 db      %10000000, %00000001
                 db      %10111101, %11111101
                 db      %10111101, %11111101
                 db      %10000000, %00000000
                 db      %11111110, %10111111
-                db      %11111110, %10000000
-                db      %11111110, %10111111
+                db      %00000010, %10100000
+                db      %11111110, %10100000
                 db      %10000000, %00111111
                 db      %10111110, %10000001
                 db      %10111110, %10111101
-                db      %10000000, %10111101
+                db      %10000000, %10100101
                 db      %10110110, %10111101
                 db      %10110110, %00000000
                 db      %10110110, %10111111
@@ -390,7 +343,7 @@ MazeData:       db      %11111111, %11111111
                 db      %11111111, %11111111
 MazeDataEnd:
 
-dynVariables
+dynamicVariables
                 ; playerPos dw
                 ; blinkyPos dw
 
