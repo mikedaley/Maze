@@ -43,6 +43,8 @@ RIGHT_CELL              equ             0x0001                      ; + 1
 
 DYN_VAR_PLAYER_POS      equ             0x00
 DYN_VAR_BLINKY_POS      equ             0x02
+DYN_VAR_BLINKY_X_VEC    equ             0x04
+DYN_VAR_BLINKY_Y_VEC    equ             0x06
 
 ; -----------------------------------------------------------------------------
 ; MAIN CODE
@@ -172,7 +174,20 @@ _moveVert
                 call    movePlayer
 
             ; -----------------------------------------------------------------------------
-            ; Move blinky
+            ; Move Blinky
+                ld      de, (dynamicVariables + DYN_VAR_BLINKY_Y_VEC)
+                call    moveBlinky
+                ld      de, (dynamicVariables + DYN_VAR_BLINKY_X_VEC)
+                call    moveBlinky
+
+                ld      hl, (dynamicVariables + DYN_VAR_BLINKY_POS)
+                call    isAJunction
+                cp      1
+                jr      nz, _drawBlinky
+
+            ; -----------------------------------------------------------------------------
+            ; Track Player
+_trackPlayer
                 ld      ix, dynamicVariables + DYN_VAR_PLAYER_POS
                 ld      iy, dynamicVariables + DYN_VAR_BLINKY_POS
 
@@ -180,25 +195,25 @@ _moveVert
                 sub     (iy + 0)
                 jp      m, _moveBlinkyUp
                 ld      de, DOWN_CELL
-                jr      _moveBlinkyVert
+                jr      _saveBlinkyYVec
 
 _moveBlinkyUp    
                 ld      de, UP_CELL  
 
-_moveBlinkyVert
-                call    moveBlinky
+_saveBlinkyYVec
+                ld      (dynamicVariables + DYN_VAR_BLINKY_Y_VEC), de
 
                 ld      a, (ix + 1)
                 sub     (iy + 1)
                 jp      m, _moveBlinkyLeft
                 ld      de, RIGHT_CELL
-                jr      _moveBlinkyHoriz
+                jr      _saveBlinkyXVec
 
 _moveBlinkyLeft    
                 ld      de, LEFT_CELL  
 
-_moveBlinkyHoriz
-                call    moveBlinky
+_saveBlinkyXVec
+                ld      (dynamicVariables + DYN_VAR_BLINKY_X_VEC), de
 
             ; -----------------------------------------------------------------------------
             ; Draw blinky
@@ -310,14 +325,59 @@ getPosition
 
                 ld      e, l                                       ; Save the X tile position 
 
+                ret 
+
+; -----------------------------------------------------------------------------
+; Checks to see if the address in HL is a junction e.g. the position 3+ possible
+; exits
+;   HL = Attribute address
+; Exit:
+;   A = 0 = No junction, 1 = Junction, 2 = Corner
+; -----------------------------------------------------------------------------
+isAJunction
+                ld      de, UP_CELL
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkRightExit
+                inc     c
+
+_checkRightExit
+                ld      de, DOWN_CELL + RIGHT_CELL
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkDownExit
+                inc     c
+
+_checkDownExit
+                ld      de, DOWN_CELL + LEFT_CELL
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkLeftExit
+                inc     c
+
+_checkLeftExit
+                ld      de, UP_CELL + LEFT_CELL
+                add     hl, de
+                cp      (hl)
+                jr      z, _checkExitCount
+                inc     c
+
+_checkExitCount
+                ld      a, c
+                cp      3
+                jr      c, _notAJunction
+                ld      a, 1
+                ret
+
+_notAJunction
+                ld      a, 0
                 ret
 
 ; -----------------------------------------------------------------------------
 ; Variables
 ; -----------------------------------------------------------------------------
-playerAddr      dw      ATTR_SCRN_ADDR + (3 * 32) + 1
-blinkyAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16
-blinkyVector    dw      LEFT_CELL
+playerAddr      dw      ATTR_SCRN_ADDR + (10 * 32) + 16 
+blinkyAddr      dw      ATTR_SCRN_ADDR + (22 * 32) + 16
 
 MazeData:       db      %11111111, %11111111
                 db      %10000000, %00000001
@@ -343,9 +403,11 @@ MazeData:       db      %11111111, %11111111
                 db      %11111111, %11111111
 MazeDataEnd:
 
-dynamicVariables
-                ; playerPos dw
-                ; blinkyPos dw
+ dynamicVariables
+                ; dw playerPos
+                ; dw blinkyPos
+                ; dw blinkyXVector
+                ; dw blinkyYVector
 
                 END init
 
