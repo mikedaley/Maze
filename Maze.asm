@@ -176,19 +176,21 @@ _moveVert
 
             ; -----------------------------------------------------------------------------
             ; Move Blinky
-                ld      de, (dynamicVariables + DYN_VAR_BLINKY_Y_VEC)
+                ld      de, (dynamicVariables + DYN_VAR_BLINKY_Y_VEC)   ; Apply blinky's x and y vector to his position 
                 call    moveBlinky
                 ld      de, (dynamicVariables + DYN_VAR_BLINKY_X_VEC)
                 call    moveBlinky
 
-                ld      hl, (blinkyAddr)
+                ld      hl, (blinkyAddr)                            ; Only check the players position at a junction
                 call    isAJunction
                 ld      a, 1
                 cp      d
                 jr      nz, _drawBlinky
 
             ; -----------------------------------------------------------------------------
-            ; Track Player
+            ; Track Player. Use the cell position that is stored for the player and blinky
+            ; it works out if the player is above, below to the left or right of blinky
+            ; and then sets the appropriate x and y vector to move towards the player
 _trackPlayer
                 ld      ix, dynamicVariables + DYN_VAR_PLAYER_POS
                 ld      iy, dynamicVariables + DYN_VAR_BLINKY_POS
@@ -294,7 +296,7 @@ moveBlinky
 getPosition
                 ld      de, ATTR_SCRN_ADDR
 
-                or      1                                           ; Address - Attribute start address
+                or      1                                           ; Calculate how many bytes the player is into attr memory
                 sbc     hl, de
                 
                 push    hl                                          ; Save # bytes from starts of attribute address
@@ -312,7 +314,7 @@ getPosition
 
                 ld      d, l                                        ; Save the Y tile position
 
-                add     hl, hl                                      ; Multuply result by 32
+                add     hl, hl                                      ; Multiply result by 32
                 add     hl, hl
                 add     hl, hl
                 add     hl, hl
