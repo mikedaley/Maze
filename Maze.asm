@@ -339,8 +339,8 @@ getPosition
 ;   D = 0 = No junction, 1 =Junction
 ; -----------------------------------------------------------------------------
 isAJunction
-                ld      bc, 0
-                ld      a, BORDER_COLOUR
+                ld      bc, 0                                       ; Count of X and Y exists held in B and C
+                ld      a, BORDER_COLOUR                            ; Going to check exits for border colour
 
                 ld      de, UP_CELL
                 add     hl, de
@@ -378,9 +378,9 @@ _checkExitCount
                 ret
 
 _possibleCorner
-                ld      d, 0                                        ; If there are two exists that is fine as...
-                cp      2                                           ; ...long as they are different axis, hence...
-                ret     c                                           ; ...counting the exist on each axis seperately i.e. B, C
+                ld      d, 0                                        ; If there are two exists that's fine as
+                cp      2                                           ; ...long as they are on a different axis, hence
+                ret     c                                           ; ...counting the exists on each axis seperately i.e. B, C
                 ld      a, b
                 cp      1
                 ret     nz
